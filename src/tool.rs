@@ -1,6 +1,7 @@
 #[derive(Debug, Clone)]
 pub struct Tool {
     pub crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
+    pub docs_use_case: crate::use_case::docs::DocsUseCase,
     tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
 }
 
@@ -21,11 +22,24 @@ pub struct SearchCrateResult {
     pub updated_at: String,
 }
 
+#[derive(Debug, serde::Deserialize, rmcp::schemars::JsonSchema)]
+pub struct RetrieveDocumentationIndexPageParams {
+    /// Name of the crate
+    pub crate_name: String,
+
+    /// Crate version. For v1.0.0, use `1.0.0`. For the latest version, use `latest`.
+    pub version: String,
+}
+
 #[rmcp::tool_router]
 impl Tool {
-    pub fn new(crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase) -> Self {
+    pub fn new(
+        crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
+        docs_use_case: crate::use_case::docs::DocsUseCase,
+    ) -> Self {
         Self {
-            crates_io_use_case: crates_io_use_case,
+            crates_io_use_case,
+            docs_use_case,
             tool_router: Self::tool_router(),
         }
     }
@@ -45,6 +59,27 @@ impl Tool {
             .collect::<Vec<rmcp::model::Content>>();
 
         Ok(rmcp::model::CallToolResult::success(entities))
+    }
+
+    #[rmcp::tool(
+        description = "Retrieves the top page of a specific version of a crate from docs.rs."
+    )]
+    async fn retrieve_documentation_index_page(
+        &self,
+        rmcp::handler::server::tool::Parameters(RetrieveDocumentationIndexPageParams {
+            crate_name,
+            version,
+        }): rmcp::handler::server::tool::Parameters<RetrieveDocumentationIndexPageParams>,
+    ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+        let response = self
+            .docs_use_case
+            .fetch_document_index_page(&crate_name, &version)
+            .await
+            .map_err(|e| e.into())?;
+
+        let result = rmcp::model::Content::text(response);
+
+        Ok(rmcp::model::CallToolResult::success(vec![result]))
     }
 }
 

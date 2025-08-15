@@ -14,9 +14,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         crates_io_repository,
     };
 
+    let http_repository = std::sync::Arc::new(crate::repository::http::HttpRepositoryImpl {});
+    let http_use_case = crate::use_case::docs::DocsUseCase { http_repository };
+
     use rmcp::ServiceExt;
 
-    let tool = crate::tool::Tool::new(crates_io_use_case)
+    let tool = crate::tool::Tool::new(crates_io_use_case, http_use_case)
         .serve(rmcp::transport::stdio())
         .await?;
 

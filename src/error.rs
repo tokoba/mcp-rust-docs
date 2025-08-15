@@ -5,6 +5,15 @@ pub enum Error {
 
     #[error("Network error: {0}")]
     CratesIoApi(String),
+
+    #[error("HTTP request error: {0}")]
+    Http(String),
+
+    #[error("Failed to parse CSS Selector: {0}")]
+    ScraperSelectorParse(String),
+
+    #[error("Failed to parse HTML: {0}")]
+    HtmlMainContentNotFound(String),
 }
 
 impl Into<rmcp::ErrorData> for Error {
