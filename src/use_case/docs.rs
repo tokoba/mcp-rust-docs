@@ -4,18 +4,11 @@ pub struct DocsUseCase {
 }
 
 impl DocsUseCase {
-    pub async fn fetch_document_index_page(
-        &self,
-        crate_name: &str,
-        version: &str,
-    ) -> Result<String, crate::error::Error> {
-        let url = format!("https://docs.rs/{crate_name}/{version}/{crate_name}/index.html");
-        let html = self.http_repository.get(&url).await?;
-
+    fn extract_main_content(&self, html: &str) -> Result<String, crate::error::Error> {
         let document = scraper::Html::parse_document(&html);
 
         let selector = scraper::Selector::parse("section#main-content").map_err(|e| {
-            tracing::error!("{} このエラーはクレート側の静的なセレクター設定ミスです。必要に応じて Issue を作成して下さい。", e.to_string());
+            tracing::error!("{} This error is due to a static selector configuration mistake on the crate side. Please create an issue if necessary.", e.to_string());
             crate::error::Error::ScraperSelectorParse(e.to_string())
         })?;
 
@@ -38,5 +31,19 @@ impl DocsUseCase {
                 "Element not found: section#main-content",
             )))
         }
+    }
+
+    pub async fn fetch_document_index_page(
+        &self,
+        crate_name: &str,
+        version: &str,
+    ) -> Result<String, crate::error::Error> {
+        let url = format!("https://docs.rs/{crate_name}/{version}/{crate_name}/index.html");
+
+        let html = self.http_repository.get(&url).await?;
+
+        let result = self.extract_main_content(&html)?;
+
+        Ok(result)
     }
 }
