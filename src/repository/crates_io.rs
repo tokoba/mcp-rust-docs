@@ -15,14 +15,7 @@ impl CratesIoRepository for CratesIoRepositoryImpl {
         &self,
         keyword: &str,
     ) -> Result<Vec<crate::record::crates_io::CrateRecord>, crate::error::Error> {
-        let client = crates_io_api::AsyncClient::new(
-            "mcp-rust-docs",
-            std::time::Duration::from_millis(3000),
-        )
-        .map_err(|e| {
-            tracing::error!("{}", e);
-            crate::error::Error::InitializeClient(e.to_string())
-        })?;
+        let client = crate::cache::get_or_init_crates_io_api_client().await?;
 
         let query = crates_io_api::CratesQuery::builder()
             .page_size(10)
