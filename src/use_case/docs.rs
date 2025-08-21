@@ -159,12 +159,12 @@ impl DocsUseCase {
             crate::error::Error::CreateTempDir(e.to_string())
         })?;
 
-        let index = tantivy::Index::create_in_dir(&index_path, schema.clone()).unwrap();
-        let mut index_writer: tantivy::IndexWriter = index.writer(50_000_000).unwrap();
+        let index = tantivy::Index::create_in_dir(&index_path, schema.clone())?;
+        let mut index_writer: tantivy::IndexWriter = index.writer(50_000_000)?;
 
-        let type_field = schema.get_field("type").unwrap();
-        let href_field = schema.get_field("href").unwrap();
-        let path_field = schema.get_field("path").unwrap();
+        let type_field = schema.get_field("type")?;
+        let href_field = schema.get_field("href")?;
+        let path_field = schema.get_field("path")?;
 
         for item in items {
             let mut doc = tantivy::TantivyDocument::default();
@@ -175,30 +175,27 @@ impl DocsUseCase {
             if let Some(path) = &item.path {
                 doc.add_text(path_field, path);
             }
-            index_writer.add_document(doc).unwrap();
+            index_writer.add_document(doc)?;
         }
 
-        index_writer.commit().unwrap();
+        index_writer.commit()?;
 
         let reader = index
             .reader_builder()
             .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .unwrap();
+            .try_into()?;
 
         let query_parser = tantivy::query::QueryParser::for_index(&index, vec![path_field]);
 
-        let query = query_parser.parse_query(keyword).unwrap();
+        let query = query_parser.parse_query(keyword)?;
         let searcher = reader.searcher();
 
-        let top_docs = searcher
-            .search(&query, &tantivy::collector::TopDocs::with_limit(10))
-            .unwrap();
+        let top_docs = searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10))?;
 
         let mut result_items = Vec::new();
 
         for (_score, doc_address) in top_docs {
-            let retrieved_doc: tantivy::TantivyDocument = searcher.doc(doc_address).unwrap();
+            let retrieved_doc: tantivy::TantivyDocument = searcher.doc(doc_address)?;
 
             let item_type = retrieved_doc
                 .get_first(type_field)
