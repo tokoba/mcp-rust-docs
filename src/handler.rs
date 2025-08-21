@@ -2,23 +2,8 @@
 pub struct Handler {
     pub crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
     pub docs_use_case: crate::use_case::docs::DocsUseCase,
-    tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
+    pub tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
     pub resource_map: crate::resource::ResourceMap,
-}
-
-#[rmcp::tool_router]
-impl Handler {
-    pub fn new(
-        crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
-        docs_use_case: crate::use_case::docs::DocsUseCase,
-    ) -> Self {
-        Self {
-            crates_io_use_case,
-            docs_use_case,
-            tool_router: Self::tool_router(),
-            resource_map: crate::resource::ResourceMap::new(),
-        }
-    }
 }
 
 #[rmcp::tool_handler]

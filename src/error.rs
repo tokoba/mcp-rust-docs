@@ -14,6 +14,15 @@ pub enum Error {
 
     #[error("Failed to parse HTML: {0}")]
     HtmlMainContentNotFound(String),
+
+    #[error("Failed to create temporary directories.")]
+    CreateTempDir(String),
+
+    #[error("{0}")]
+    FuzzySearch(#[from] tantivy::error::TantivyError),
+
+    #[error("{0}")]
+    FuzzySearchQueryParse(#[from] tantivy::query::QueryParserError),
 }
 
 impl Into<rmcp::ErrorData> for Error {
