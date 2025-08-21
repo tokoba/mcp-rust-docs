@@ -1,8 +1,10 @@
 pub mod cache;
 pub mod entity;
 pub mod error;
+pub mod handler;
 pub mod record;
 pub mod repository;
+pub mod resource;
 pub mod tool;
 pub mod use_case;
 
@@ -19,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     use rmcp::ServiceExt;
 
-    let tool = crate::tool::Tool::new(crates_io_use_case, http_use_case)
+    let tool = crate::handler::Handler::new(crates_io_use_case, http_use_case)
         .serve(rmcp::transport::stdio())
         .await?;
 
