@@ -1,3 +1,5 @@
+use tantivy::schema::Value;
+
 #[derive(Debug, Clone)]
 pub struct DocsUseCase {
     pub http_repository: std::sync::Arc<dyn crate::repository::http::HttpRepository + Send + Sync>,
@@ -136,6 +138,94 @@ impl DocsUseCase {
         let items = self.parse_all_items(&raw_html)?;
 
         Ok(items)
+    }
+
+    pub async fn search_items(
+        &self,
+        crate_name: &str,
+        version: &str,
+        keyword: &str,
+    ) -> Result<Vec<crate::entity::docs::Item>, crate::error::Error> {
+        let items = self.fetch_all_items(crate_name, version).await?;
+
+        let mut schema_builder = tantivy::schema::Schema::builder();
+        schema_builder.add_text_field("type", tantivy::schema::STORED);
+        schema_builder.add_text_field("href", tantivy::schema::STORED);
+        schema_builder.add_text_field("path", tantivy::schema::TEXT | tantivy::schema::STORED);
+        let schema = schema_builder.build();
+
+        let index_path = tempfile::tempdir().map_err(|e| {
+            tracing::error!("{}", e);
+            crate::error::Error::CreateTempDir(e.to_string())
+        })?;
+
+        let index = tantivy::Index::create_in_dir(&index_path, schema.clone()).unwrap();
+        let mut index_writer: tantivy::IndexWriter = index.writer(50_000_000).unwrap();
+
+        let type_field = schema.get_field("type").unwrap();
+        let href_field = schema.get_field("href").unwrap();
+        let path_field = schema.get_field("path").unwrap();
+
+        for item in items {
+            let mut doc = tantivy::TantivyDocument::default();
+            doc.add_text(type_field, &item.r#type);
+            if let Some(href) = &item.href {
+                doc.add_text(href_field, href);
+            }
+            if let Some(path) = &item.path {
+                doc.add_text(path_field, path);
+            }
+            index_writer.add_document(doc).unwrap();
+        }
+
+        index_writer.commit().unwrap();
+
+        let reader = index
+            .reader_builder()
+            .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
+            .try_into()
+            .unwrap();
+
+        let query_parser = tantivy::query::QueryParser::for_index(&index, vec![path_field]);
+
+        let query = query_parser.parse_query(keyword).unwrap();
+        let searcher = reader.searcher();
+
+        let top_docs = searcher
+            .search(&query, &tantivy::collector::TopDocs::with_limit(10))
+            .unwrap();
+
+        let mut result_items = Vec::new();
+
+        for (_score, doc_address) in top_docs {
+            let retrieved_doc: tantivy::TantivyDocument = searcher.doc(doc_address).unwrap();
+
+            let item_type = retrieved_doc
+                .get_first(type_field)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let href = retrieved_doc
+                .get_first(href_field)
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let path = retrieved_doc
+                .get_first(path_field)
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let item = crate::entity::docs::Item {
+                r#type: item_type,
+                href,
+                path,
+            };
+
+            result_items.push(item);
+        }
+
+        Ok(result_items)
     }
 }
 

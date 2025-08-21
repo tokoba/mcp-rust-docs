@@ -14,6 +14,9 @@ pub enum Error {
 
     #[error("Failed to parse HTML: {0}")]
     HtmlMainContentNotFound(String),
+
+    #[error("Failed to create temporary directories.")]
+    CreateTempDir(String),
 }
 
 impl Into<rmcp::ErrorData> for Error {

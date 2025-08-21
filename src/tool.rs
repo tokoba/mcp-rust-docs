@@ -36,7 +36,32 @@ pub struct RetrieveDocumentationPageParams {
     pub path: String,
 }
 
+#[derive(Debug, serde::Deserialize, rmcp::schemars::JsonSchema)]
+pub struct SearchDocumentationItemsParams {
+    /// Name of the crate
+    pub crate_name: String,
+
+    /// Crate version. For v1.0.0, use `1.0.0`. For the latest version, use `latest`.
+    pub version: String,
+
+    /// Keyword(s) for fuzzy searching items.
+    pub keyword: String,
+}
+
+#[rmcp::tool_router]
 impl crate::handler::Handler {
+    pub fn new(
+        crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
+        docs_use_case: crate::use_case::docs::DocsUseCase,
+    ) -> Self {
+        Self {
+            crates_io_use_case,
+            docs_use_case,
+            tool_router: Self::tool_router(),
+            resource_map: crate::resource::ResourceMap::new(),
+        }
+    }
+
     /// Search for crates on crates.io and retrieve crate summaries.
     #[rmcp::tool]
     async fn search_crate(
@@ -76,7 +101,7 @@ impl crate::handler::Handler {
     }
 
     /// Retrieves all items (structs, enums, functions, etc.) defined in the specified crate version from docs.rs.
-    /// Use this when you are unsure where a particular item is located in the documentation.
+    /// Use this as a fallback when a keyword search does not find the desired item.
     /// Returns a list of all discoverable items for the crate and version.
     #[rmcp::tool]
     async fn retrieve_documentation_all_items(
@@ -89,6 +114,29 @@ impl crate::handler::Handler {
         let response = self
             .docs_use_case
             .fetch_all_items(&crate_name, &version)
+            .await
+            .map_err(|e| e.into())?
+            .into_iter()
+            .map(|item| rmcp::model::Content::text(serde_json::to_string(&item).unwrap()))
+            .collect::<Vec<rmcp::model::Content>>();
+
+        Ok(rmcp::model::CallToolResult::success(response))
+    }
+
+    /// Performs a fuzzy search for items (structs, enums, functions, etc.) in the specified crate version on docs.rs using the provided keyword.
+    /// Returns items that match the keyword.
+    #[rmcp::tool]
+    async fn search_documentation_items(
+        &self,
+        rmcp::handler::server::tool::Parameters(SearchDocumentationItemsParams {
+            crate_name,
+            version,
+            keyword,
+        }): rmcp::handler::server::tool::Parameters<SearchDocumentationItemsParams>,
+    ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+        let response = self
+            .docs_use_case
+            .search_items(&crate_name, &version, &keyword)
             .await
             .map_err(|e| e.into())?
             .into_iter()
