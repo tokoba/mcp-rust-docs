@@ -1,10 +1,3 @@
-#[derive(Debug, Clone)]
-pub struct Tool {
-    pub crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
-    pub docs_use_case: crate::use_case::docs::DocsUseCase,
-    tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
-}
-
 #[derive(Debug, serde::Deserialize, rmcp::schemars::JsonSchema)]
 pub struct SearchCrateParams {
     /// Keyword for searching crates on crates.io. Searches by crate name.
@@ -43,19 +36,7 @@ pub struct RetrieveDocumentationPageParams {
     pub path: String,
 }
 
-#[rmcp::tool_router]
-impl Tool {
-    pub fn new(
-        crates_io_use_case: crate::use_case::crates_io::CratesIoUseCase,
-        docs_use_case: crate::use_case::docs::DocsUseCase,
-    ) -> Self {
-        Self {
-            crates_io_use_case,
-            docs_use_case,
-            tool_router: Self::tool_router(),
-        }
-    }
-
+impl crate::handler::Handler {
     /// Search for crates on crates.io and retrieve crate summaries.
     #[rmcp::tool]
     async fn search_crate(
@@ -142,18 +123,5 @@ impl Tool {
         let result = rmcp::model::Content::text(response);
 
         Ok(rmcp::model::CallToolResult::success(vec![result]))
-    }
-}
-
-#[rmcp::tool_handler]
-impl rmcp::ServerHandler for Tool {
-    fn get_info(&self) -> rmcp::model::ServerInfo {
-        rmcp::model::ServerInfo {
-            instructions: Some("Retrieve Rust crates and documents.".into()),
-            capabilities: rmcp::model::ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            ..Default::default()
-        }
     }
 }
