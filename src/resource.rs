@@ -47,27 +47,29 @@ impl ResourceMap {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = Result<rmcp::model::ListResourcesResult, rmcp::ErrorData>> + Send + '_
     {
-        let resources = self
-            .inner
-            .iter()
-            .map(|(_k, v)| {
-                rmcp::model::Resource::new(
-                    rmcp::model::RawResource {
-                        uri: v.uri.clone(),
-                        name: v.name.clone(),
-                        description: v.description.clone(),
-                        mime_type: v.mime_type.clone(),
-                        size: v.size,
-                    },
-                    None,
-                )
-            })
-            .collect::<Vec<rmcp::model::Annotated<rmcp::model::RawResource>>>();
+        async {
+            let resources = self
+                .inner
+                .iter()
+                .map(|(_k, v)| {
+                    rmcp::model::Resource::new(
+                        rmcp::model::RawResource {
+                            uri: v.uri.clone(),
+                            name: v.name.clone(),
+                            description: v.description.clone(),
+                            mime_type: v.mime_type.clone(),
+                            size: v.size,
+                        },
+                        None,
+                    )
+                })
+                .collect::<Vec<rmcp::model::Annotated<rmcp::model::RawResource>>>();
 
-        std::future::ready(Ok(rmcp::model::ListResourcesResult {
-            next_cursor: None,
-            resources,
-        }))
+            Ok(rmcp::model::ListResourcesResult {
+                next_cursor: None,
+                resources,
+            })
+        }
     }
 
     pub fn read_resource(
@@ -76,19 +78,20 @@ impl ResourceMap {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = Result<rmcp::model::ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
-        let uri = request.uri;
+        async {
+            let uri = request.uri;
 
-        let contents = match self.inner.get(&uri) {
-            Some(resource) => Ok(rmcp::model::ReadResourceResult {
-                contents: vec![resource.contents.clone()],
-            }),
-            None => Err(rmcp::ErrorData::resource_not_found(
-                format!("Resource not found: {}", uri),
-                None,
-            )),
-        };
-
-        std::future::ready(contents)
+            let contents = match self.inner.get(&uri) {
+                Some(resource) => Ok(rmcp::model::ReadResourceResult {
+                    contents: vec![resource.contents.clone()],
+                }),
+                None => Err(rmcp::ErrorData::resource_not_found(
+                    format!("Resource not found: {}", uri),
+                    None,
+                )),
+            };
+            contents
+        }
     }
 
     pub fn list_resource_templates(
