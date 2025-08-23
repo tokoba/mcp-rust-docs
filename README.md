@@ -1,5 +1,7 @@
 # MCP Rust Docs Server
 
+[![Crates.io](https://img.shields.io/crates/v/mcp-rust-docs?logo=rust)](https://crates.io/crates/mcp-rust-docs/)[![npm](https://img.shields.io/npm/v/mcp-rust-docs?logo=npm)](https://www.npmjs.com/package/mcp-rust-docs)
+
 A Model Context Protocol (MCP) server that provides comprehensive access to Rust crate documentation and metadata. This server enables AI agents to search for crates on crates.io and retrieve detailed documentation from docs.rs.
 
 ![alt text](assets/image.png)

@@ -1,6 +1,6 @@
 {
     "name": "mcp-rust-docs",
-    "version": "0.1.0-alpha.1",
+    "version": "0.1.0",
     "private": false,
     "description": "A Model Context Protocol (MCP) server that provides comprehensive access to Rust crate documentation and metadata. ",
     "keywords": [
