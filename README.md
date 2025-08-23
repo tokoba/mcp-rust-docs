@@ -2,6 +2,30 @@
 
 A Model Context Protocol (MCP) server that provides comprehensive access to Rust crate documentation and metadata. This server enables AI agents to search for crates on crates.io and retrieve detailed documentation from docs.rs.
 
+## Usage
+
+You can run the MCP Rust Docs Server using either Node.js or Rust:
+
+### Using npm
+
+```bash
+npx mpc-rust-docs
+```
+
+### Using cargo
+
+First, install the server with Cargo:
+
+```bash
+cargo install mpc-rust-docs
+```
+
+Then start the server:
+
+```bash
+mpc-rust-docs
+```
+
 ## Features
 
 ### 🔍 Tools
