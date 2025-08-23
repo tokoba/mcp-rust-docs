@@ -1,0 +1,21 @@
+{
+    "name": "mcp-rust-docs",
+    "version": "0.1.0-alpha.1",
+    "private": false,
+    "author": {
+        "name": "Ikuma Yamashita",
+        "email": "me@ikuma.cloud",
+        "url": "https://www.ikuma.cloud/about"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/46ki75/mcp-rust-docs"
+    },
+    "bin": {
+        "mcp-rust-docs": "./target/release/mcp-rust-docs"
+    },
+    "files": [
+        "./target/release/mcp-rust-docs"
+    ],
+    "scripts": {}
+}
