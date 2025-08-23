@@ -1,5 +1,6 @@
 install:
 	cargo install cargo-license cargo-about
 
-bundle-license:
+build:
+	cargo build --release
 	cargo about generate about.hbs > ./license.html
