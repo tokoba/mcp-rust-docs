@@ -66,7 +66,7 @@ impl crate::handler::Handler {
     #[rmcp::tool]
     async fn search_crate(
         &self,
-        rmcp::handler::server::tool::Parameters(SearchCrateParams { keyword }): rmcp::handler::server::tool::Parameters<SearchCrateParams>,
+        rmcp::handler::server::wrapper::Parameters(SearchCrateParams { keyword }): rmcp::handler::server::wrapper::Parameters<SearchCrateParams>,
     ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
         let entities = self
             .crates_io_use_case
@@ -84,10 +84,12 @@ impl crate::handler::Handler {
     #[rmcp::tool]
     async fn retrieve_documentation_index_page(
         &self,
-        rmcp::handler::server::tool::Parameters(RetrieveDocumentationIndexPageParams {
+        rmcp::handler::server::wrapper::Parameters(RetrieveDocumentationIndexPageParams {
             crate_name,
             version,
-        }): rmcp::handler::server::tool::Parameters<RetrieveDocumentationIndexPageParams>,
+        }): rmcp::handler::server::wrapper::Parameters<
+            RetrieveDocumentationIndexPageParams,
+        >,
     ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
         let response = self
             .docs_use_case
@@ -106,10 +108,12 @@ impl crate::handler::Handler {
     #[rmcp::tool]
     async fn retrieve_documentation_all_items(
         &self,
-        rmcp::handler::server::tool::Parameters(RetrieveDocumentationIndexPageParams {
+        rmcp::handler::server::wrapper::Parameters(RetrieveDocumentationIndexPageParams {
             crate_name,
             version,
-        }): rmcp::handler::server::tool::Parameters<RetrieveDocumentationIndexPageParams>,
+        }): rmcp::handler::server::wrapper::Parameters<
+            RetrieveDocumentationIndexPageParams,
+        >,
     ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
         let response = self
             .docs_use_case
@@ -128,11 +132,11 @@ impl crate::handler::Handler {
     #[rmcp::tool]
     async fn search_documentation_items(
         &self,
-        rmcp::handler::server::tool::Parameters(SearchDocumentationItemsParams {
+        rmcp::handler::server::wrapper::Parameters(SearchDocumentationItemsParams {
             crate_name,
             version,
             keyword,
-        }): rmcp::handler::server::tool::Parameters<SearchDocumentationItemsParams>,
+        }): rmcp::handler::server::wrapper::Parameters<SearchDocumentationItemsParams>,
     ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
         let response = self
             .docs_use_case
@@ -156,11 +160,11 @@ impl crate::handler::Handler {
     #[rmcp::tool]
     async fn retrieve_documentation_page(
         &self,
-        rmcp::handler::server::tool::Parameters(RetrieveDocumentationPageParams {
+        rmcp::handler::server::wrapper::Parameters(RetrieveDocumentationPageParams {
             crate_name,
             version,
             path,
-        }): rmcp::handler::server::tool::Parameters<RetrieveDocumentationPageParams>,
+        }): rmcp::handler::server::wrapper::Parameters<RetrieveDocumentationPageParams>,
     ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
         let response = self
             .docs_use_case
