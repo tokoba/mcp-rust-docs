@@ -13,7 +13,7 @@ async-trait = "0.1.89"
 crates_io_api = { version = "0.12.0", features = ["rustls"] }
 regex = "1.11.2"
 reqwest = "0.12.23"
-rmcp = { version = "0.6.1", features = ["transport-io"] }
+rmcp = { version = "0.6.4", features = ["transport-io"] }
 schemars = "1.0.4"
 scraper = "0.24.0"
 serde = "1.0.225"
