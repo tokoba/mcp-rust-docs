@@ -32,19 +32,6 @@ impl DocsUseCase {
         }
     }
 
-    pub(super) fn cleanup_html(&self, html: &str) -> Result<String, crate::error::Error> {
-        let re_class = regex::Regex::new(r#"\sclass=(".*?"|'.*?')"#).unwrap();
-        let re_script = regex::Regex::new(r#"(?is)<script.*?</script>"#).unwrap();
-        let re_toolbar =
-            regex::Regex::new(r#"(?is)<rustdoc-toolbar.*?</rustdoc-toolbar>"#).unwrap();
-
-        let result = re_class.replace_all(&html, "");
-        let result = re_script.replace_all(&result, "");
-        let result = re_toolbar.replace_all(&result, "");
-
-        return Ok(result.to_string());
-    }
-
     pub async fn fetch_document_index_page(
         &self,
         crate_name: &str,
@@ -54,9 +41,9 @@ impl DocsUseCase {
 
         let raw_html = self.http_repository.get(&url).await?;
         let main_html = self.extract_main_content(&raw_html, "section#main-content")?;
-        let result = self.cleanup_html(&main_html)?;
+        let markdown = html2md::rewrite_html(&main_html, true);
 
-        Ok(result)
+        Ok(markdown)
     }
 
     pub async fn fetch_document_page(
@@ -69,9 +56,9 @@ impl DocsUseCase {
 
         let raw_html = self.http_repository.get(&url).await?;
         let main_html = self.extract_main_content(&raw_html, "section#main-content")?;
-        let result = self.cleanup_html(&main_html)?;
+        let markdown = html2md::rewrite_html(&main_html, true);
 
-        Ok(result)
+        Ok(markdown)
     }
 
     pub(super) fn parse_all_items(

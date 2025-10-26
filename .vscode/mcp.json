@@ -1,9 +1,9 @@
 {
     "servers": {
         "mcp-rust-docs": {
-            "command": "pnpx",
+            "command": "cargo",
             "args": [
-                "mcp-rust-docs@latest"
+                "run"
             ]
         }
     }
