@@ -31,6 +31,8 @@
 
 1) **search_crate**
    - 説明: crates.io 上でクレートを名前で検索し、メタデータ（概要）を取得します。
+   - 特性:
+     - 戻り件数は **最大10件**、**関連度順**（relevance）で返却されます。
    - パラメータ:
 
      ```json
@@ -71,6 +73,11 @@
 
 3) **retrieve_documentation_all_items**
    - 説明: 指定クレート・バージョンの **全項目一覧**（struct/enum/trait/function/module など）を取得します。
+   - 返却項目のフィールド仕様（docs.rs項目）:
+     - **name**: 項目の短い名前（例: "Deserialize"）
+     - **type**: 項目種別（例: "trait" / "struct" / "enum" / "fn" / "module" など） ＊旧仕様の "kind" は廃止
+     - **path**: 表示名（モジュールパスを含む人間可読な表示文字列、例: "serde::de::Deserialize"）
+     - **href**: ドキュメントの相対URLパス（先頭が "/"、例: "/de/trait.Deserialize.html"）
    - パラメータ:
 
      ```json
@@ -81,20 +88,23 @@
      ```
 
    - 返却形式: 各項目を1件ずつ **JSON文字列**（text content）で返却
-     - 例（概念図。実際のフィールド名は内部仕様やバージョンで異なる可能性があります）:
+     - 例:
 
        ```json
        {
          "name": "Deserialize",
-         "kind": "trait",
-         "path": "/serde/trait.Deserialize.html"
+         "type": "trait",
+         "path": "serde::de::Deserialize",
+         "href": "/de/trait.Deserialize.html"
        }
        ```
 
-       *返却オブジェクトには "path" や "href" 等の「特定ページへのリンク情報」が含まれます。後述の retrieve_documentation_page に利用してください。*
+       *返却オブジェクトの **href** は特定ページへのリンク情報です。後述の retrieve_documentation_page の **path パラメータ**にそのまま渡してください（先頭 "/" 必須）。*
 
 4) **search_documentation_items**
    - 説明: 指定クレート・バージョンに対し **キーワードで項目のあいまい検索**を行い、マッチする項目を返します。
+   - 検索仕様:
+     - 検索は、項目の **表示名（path フィールド）** に対して実行されます。例: "serde::de::Deserialize" や "tokio::task::JoinHandle" に対して照合。
    - パラメータ:
 
      ```json
@@ -106,18 +116,22 @@
      ```
 
    - 返却形式: 各ヒットを1件ずつ **JSON文字列**（text content）で返却
-     - 例（概念図）:
+     - 例:
 
        ```json
        {
          "name": "Deserialize",
-         "kind": "trait",
-         "path": "/de/trait.Deserialize.html"
+         "type": "trait",
+         "path": "serde::de::Deserialize",
+         "href": "/de/trait.Deserialize.html"
        }
        ```
 
 5) **retrieve_documentation_page**
-   - 説明: docs.rs の **特定ページ**を取得します（正確なページパスが必要）。
+   - 説明: docs.rs の **特定ページ**を取得します。
+   - 重要:
+     - パラメータの **path** には、項目オブジェクトの **href** をそのまま使用してください。
+     - **href は必ず "/" で始まる相対パス**である必要があります。
    - パラメータ:
 
      ```json
@@ -156,7 +170,7 @@
 
     ```json
     {
-      "resource_uri": "str://mcp-rust-docs/instruction"
+      "uri": "str://mcp-rust-docs/instruction"
     }
     ```
 
@@ -174,13 +188,14 @@
 2. 📚 **retrieve_documentation_index_page** でトップページ取得
    - "Modules" や "Structs/Enums/Traits/Functions" セクションを把握
 3. 🧭 **search_documentation_items** でキーワードから候補を絞り込み
-   - 例: keyword="Deserialize" や "to_string" など
+   - 例: keyword="Deserialize" や "JoinHandle" など
+   - 検索は **表示名（path フィールド）** に対して実行されます
    - 必要なら **retrieve_documentation_all_items** にフォールバック（大規模クレートでは出力が多くなるため慎重に）
-4. 📄 **retrieve_documentation_page** に **正確な path** を渡してドキュメント本文取得
+4. 📄 **retrieve_documentation_page** に **項目の href を path パラメータ**として渡してドキュメント本文取得
    - 返却されたテキスト（Markdown相当）から該当箇所を引用・要約し、回答を生成
-5. 🏷️ 回答には **出典**（crate_name, version, path）を明示
+5. 🏷️ 回答には **出典**（crate_name, version, href/表示名）を明示
 
-### B. 特定ページのパスが既に分かっている場合（ショートカット）
+### B. 特定ページのパス（href）が既に分かっている場合（ショートカット）
 
 - 直接 **retrieve_documentation_page** を呼び出す
 - 例:
@@ -195,7 +210,7 @@
 
 ### C. 項目が見つからない／曖昧な場合
 
-- まず **search_documentation_items** を使い、キーワードを変えて複数回検索
+- まず **search_documentation_items** を使い、キーワードを変えて複数回検索（検索対象は **path**）
 - 見つからない場合は **retrieve_documentation_all_items** で全量取得後、クライアント側でフィルタリング
 - それでも不明な場合はトップページのモジュールツリーを辿る（Index ページ内の "Modules" を参照）
 
@@ -210,10 +225,12 @@
   - 安定運用には **"latest"** を推奨
   - 特定バージョンが必要な場合は `"1.0.0"` のように **完全表記**で指定
 - ✅ **パスの厳密性**:
-  - **retrieve_documentation_page** は **正確な path** が必要
-  - あいまい検索や全項目一覧で得たオブジェクトに含まれる **リンク情報（例: path/href）** をそのまま使う
+  - **retrieve_documentation_page** は **正確な href** が必要
+  - あいまい検索や全項目一覧で得たオブジェクトに含まれる **href** を **path パラメータ**にそのまま使う（先頭 "/" 必須）
+- ✅ **検索対象の明確化**:
+  - 項目検索は **表示名（path フィールド）** に対して行われます。例: "serde::de::Deserialize"
 - ✅ **出典の明示**:
-  - 回答には **crate_name / version / path** を含め、どの公式ページを根拠にしたか示す
+  - 回答には **crate_name / version / href（または表示名 path）** を含め、どの公式ページを根拠にしたか示す
 - ✅ **出力の扱い**:
   - ページ本文は **Markdown相当のテキスト**、項目やクレートメタデータは **JSON文字列**で返却されるため、クライアント側で **JSONパース**が必要
 - ✅ **エラー対策**:
@@ -236,7 +253,7 @@
 
 ### 例1: serde クレートの「Deserialize」トレイトを探してページ取得する
 
-1) crates.io でクレート検索
+1) crates.io でクレート検索（最大10件・関連度順）
 
 ```json
 {
@@ -281,7 +298,7 @@ Traits:
 ...
 ```
 
-3) 項目のあいまい検索
+3) 項目のあいまい検索（検索対象は表示名 path）
 
 ```json
 {
@@ -299,12 +316,13 @@ Traits:
 ```json
 {
   "name": "Deserialize",
-  "kind": "trait",
-  "path": "/de/trait.Deserialize.html"
+  "type": "trait",
+  "path": "serde::de::Deserialize",
+  "href": "/de/trait.Deserialize.html"
 }
 ```
 
-4) 特定ページ取得
+4) 特定ページ取得（項目の href を path パラメータに使用）
 
 ```json
 {
@@ -329,7 +347,7 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 5) 回答生成（例）
 
 - 要約と使用例を提示
-- 出典を明示（例: serde latest, path=/de/trait.Deserialize.html）
+- 出典を明示（例: crate=serde, version=latest, href=/de/trait.Deserialize.html, path=serde::de::Deserialize）
 
 ### 例2: トップページからモジュールを辿るワークフロー（未知の構造体を調査）
 
@@ -344,7 +362,7 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 
 2) "Modules" セクションで目的のモジュール（例: `de::value`）を確認
 
-3) モジュール内項目をキーワードで検索
+3) モジュール内項目をキーワードで検索（path に対して）
 
 ```json
 {
@@ -357,7 +375,18 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 }
 ```
 
-4) ヒットした項目の `path` を使ってページ取得
+レスポンス例:
+
+```json
+{
+  "name": "BoolDeserializer",
+  "type": "struct",
+  "path": "serde::de::value::BoolDeserializer",
+  "href": "/de/value/struct.BoolDeserializer.html"
+}
+```
+
+4) ヒットした項目の `href` を `path` に渡してページ取得
 
 ```json
 {
@@ -372,7 +401,7 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 
 ### 例3: あいまい検索で見つからない場合に全量から絞り込む
 
-1) 全項目一覧を取得
+1) 全項目一覧を取得（name/type/path/href で返却）
 
 ```json
 {
@@ -382,9 +411,9 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 ```
 
 2) クライアント側で JSON をパースしてフィルタ
-   - 例: `"kind": "struct"` かつ `"name"` に `"JoinHandle"` を含む項目に絞る
+   - 例: `"type": "struct"` かつ `"name"` に `"JoinHandle"` を含む項目に絞る
 
-3) 見つけた項目の `path` でページ取得
+3) 見つけた項目の `href` を使ってページ取得（path パラメータに渡す）
 
 ```json
 {
@@ -401,8 +430,8 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 
 ## 補足（運用・技術的背景）
 
-- 内部では **fast_html2md** により docs.rs の HTML を **読みやすいテキスト（Markdown相当）** へ変換して返す設計です。
-- あいまい検索には **インデックス技術**（例: tantivy）を用いて、高速に候補を抽出します。
+- 内部では **html2md** により docs.rs の HTML を **読みやすいテキスト（Markdown相当）** へ変換して返す設計です。
+- あいまい検索では **インデックス技術**（例: tantivy）を用い、検索対象は **表示名（path フィールド）** です。
 - 返却される JSON は **テキスト**として送られるため、**クライアント側で安全にパース**してください。
 - ネットワークエラーやレートリミットに遭遇した場合は、リトライやキーワード調整、バージョンの "latest" 指定を検討してください。
 
@@ -412,6 +441,6 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 
 - このサーバーは、AIエージェントが **公式で最新**の Rust クレート情報・ドキュメントを取得するために設計されています。
 - 必ず **Instruction リソース**の内容を遵守し、**MCPツール**を用いて探索・取得・回答作成を行ってください。
-- 回答には **出典（crate_name/version/path）** を明示し、再現可能な形でユーザーへ提示することがベストプラクティスです。
+- 回答には **出典（crate_name/version/href と表示名 path）** を明示し、再現可能な形でユーザーへ提示することがベストプラクティスです。
 
 🦀 Happy Rust Documentation Hunting!
