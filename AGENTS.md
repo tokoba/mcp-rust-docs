@@ -345,6 +345,7 @@ fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where ...
 ```
 
 5) 回答生成（例）
+
 - 要約と使用例を提示
 - 出典を明示（例: crate=serde, version=latest, href=/de/trait.Deserialize.html, path=serde::de::Deserialize）
 
